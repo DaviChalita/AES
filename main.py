@@ -1,22 +1,14 @@
-# chave = [hex(84), hex(104), hex(97), hex(116),
-#          hex(115), hex(32), hex(109), hex(121),
-#          hex(32), hex(75), hex(117), hex(110),
-#          hex(103), hex(32), hex(70), hex(117)]
 from collections import deque
 
 chave = [int('54', 16), int('68', 16), int('61', 16), int('74', 16), int('73', 16), int('20', 16), int('6D', 16),
          int('79', 16), int('20', 16), int('4B', 16), int('75', 16), int('6E', 16), int('67', 16), int('20', 16),
          int('46', 16), int('75', 16)]
-# print(chave)
+
 print("Chave: ", chave)
 texto = [int('54', 16), int('77', 16), int('6F', 16), int('20', 16), int('4F', 16), int('6E', 16), int('65', 16),
          int('20', 16), int('4E', 16), int('69', 16), int('6E', 16), int('65', 16), int('20', 16), int('54', 16),
          int('77', 16), int('6F', 16)]
 print("Texto ", texto)
-
-# texto = [hex(84), hex(119), hex(111), hex(32), hex(79),
-#          hex(110), hex(101), hex(32), hex(78), hex(105),
-#          hex(110), hex(101), hex(32), hex(84), hex(119), hex(111)]
 
 s_sbox = [
     [int('63', 16), int('7c', 16), int('77', 16), int('7b', 16), int('f2', 16), int('6b', 16), int('6f', 16),
@@ -92,12 +84,10 @@ for i in range(len(chave)):
 
 print("Estado: ", estado)
 
-
 def lookup(byte):
     x = byte >> 4
     y = byte & 15
     return s_sbox[x][y]
-
 
 for i in range(len(estado)):
     estado[i] = lookup(estado[i])

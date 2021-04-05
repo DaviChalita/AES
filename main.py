@@ -1,10 +1,16 @@
+# Referencias
+# https://medium.com/wavy-engineering/building-aes-128-from-the-ground-up-with-python-8122af44ebf9
+# https://kavaliro.com/wp-content/uploads/2014/03/AES.pdf
+
 from collections import deque
 
-chave = [int('54', 16), int('68', 16), int('61', 16), int('74', 16), int('73', 16), int('20', 16), int('6D', 16),
-         int('79', 16), int('20', 16), int('4B', 16), int('75', 16), int('6E', 16), int('67', 16), int('20', 16),
-         int('46', 16), int('75', 16)]
+import numpy as np
 
-print("Chave: ", chave)
+chave0 = [int('54', 16), int('68', 16), int('61', 16), int('74', 16), int('73', 16), int('20', 16), int('6D', 16),
+          int('79', 16), int('20', 16), int('4B', 16), int('75', 16), int('6E', 16), int('67', 16), int('20', 16),
+          int('46', 16), int('75', 16)]
+
+print("Chave Round 0: ", chave0)
 texto = [int('54', 16), int('77', 16), int('6F', 16), int('20', 16), int('4F', 16), int('6E', 16), int('65', 16),
          int('20', 16), int('4E', 16), int('69', 16), int('6E', 16), int('65', 16), int('20', 16), int('54', 16),
          int('77', 16), int('6F', 16)]
@@ -77,17 +83,19 @@ s_sbox = [
      int('16', 16)]
 ]
 
-estado = [None] * 16
-
-for i in range(len(chave)):
-    estado[i] = chave[i] ^ texto[i]
-
-print("Estado: ", estado)
 
 def lookup(byte):
     x = byte >> 4
     y = byte & 15
     return s_sbox[x][y]
+
+
+estado = [None] * 16
+
+for i in range(len(chave0)):
+    estado[i] = chave0[i] ^ texto[i]
+
+print("Estado: ", estado)
 
 for i in range(len(estado)):
     estado[i] = lookup(estado[i])
@@ -98,6 +106,7 @@ esquerda = 0
 ini = 0
 fim = 4
 rotacionado = deque([])
+
 for i in range(len(estado)):
     rot = deque(estado[ini:fim])
     rot.rotate(esquerda)
@@ -107,3 +116,64 @@ for i in range(len(estado)):
     rotacionado += rot
 
 print("Rotacionado: ", rotacionado)
+
+
+def multiply_by_2(v):
+    s = v << 1
+    s &= 0xff
+    if (v & 128) != 0:
+        s = s ^ 0x1b
+    return s
+
+
+def multiply_by_3(v):
+    return multiply_by_2(v) ^ v
+
+
+def mix_columns(grid):
+    new_grid = [[], [], [], []]
+    for i in range(4):
+        col = [grid[j][i] for j in range(4)]
+        col = mix_column(col)
+        for i in range(4):
+            new_grid[i].append(col[i])
+    return new_grid
+
+
+def mix_column(column):
+    r = [
+        multiply_by_2(column[0]) ^ multiply_by_3(column[1]) ^ column[2] ^ column[3],
+        multiply_by_2(column[1]) ^ multiply_by_3(column[2]) ^ column[3] ^ column[0],
+        multiply_by_2(column[2]) ^ multiply_by_3(column[3]) ^ column[0] ^ column[1],
+        multiply_by_2(column[3]) ^ multiply_by_3(column[0]) ^ column[1] ^ column[2],
+    ]
+    return r
+
+
+arrrot = np.asarray(list(rotacionado))
+# print("Arrot: ", arrrot)
+matrot = arrrot.reshape(4, 4)
+# print("Matrot: \n", matrot)
+
+mixed_grid = mix_columns(matrot)
+
+print("Mixed Grid: ", mixed_grid)
+
+
+def add_sub_key(block_grid, key_grid):
+    r = []
+
+    # 4 rows in the grid
+    for i in range(4):
+        r.append([])
+        # 4 values on each row
+        for j in range(4):
+            r[-1].append(block_grid[i][j] ^ key_grid[i][j])
+    return r
+
+
+arrchave = np.asarray(chave0)
+matchave = arrchave.reshape(4, 4)
+sub_key = add_sub_key(mixed_grid, matchave)
+
+print("Sub key: ", sub_key)

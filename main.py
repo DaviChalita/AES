@@ -11,12 +11,14 @@ chave0 = [int('54', 16), int('68', 16), int('61', 16), int('74', 16), int('73', 
           int('46', 16), int('75', 16)]
 
 print("Chave Round 0: ", chave0)
+
 texto = [int('54', 16), int('77', 16), int('6F', 16), int('20', 16), int('4F', 16), int('6E', 16), int('65', 16),
          int('20', 16), int('4E', 16), int('69', 16), int('6E', 16), int('65', 16), int('20', 16), int('54', 16),
          int('77', 16), int('6F', 16)]
+
 print("Texto ", texto)
 
-s_sbox = [
+s_box = [
     [int('63', 16), int('7c', 16), int('77', 16), int('7b', 16), int('f2', 16), int('6b', 16), int('6f', 16),
      int('c5', 16), int(
         '30', 16), int('01', 16), int('67', 16), int('2b', 16), int('fe', 16), int('d7', 16), int('ab', 16),
@@ -82,31 +84,35 @@ s_sbox = [
         '41', 16), int('99', 16), int('2d', 16), int('0f', 16), int('b0', 16), int('54', 16), int('bb', 16),
      int('16', 16)]
 ]
-
-
-def lookup(byte):
-    x = byte >> 4
-    y = byte & 15
-    return s_sbox[x][y]
-
-
+# inicializa matriz
 estado = [None] * 16
 
+# faz o XOR entre a chave e o texto
 for i in range(len(chave0)):
     estado[i] = chave0[i] ^ texto[i]
 
-print("Estado: ", estado)
+print("Matriz de estado: ", estado)
 
+
+def substitui_sbox(byte):
+    x = byte >> 4
+    y = byte & 15
+    return s_box[x][y]
+
+
+# troca o texto resultante pelo seu correspondente s-box
 for i in range(len(estado)):
-    estado[i] = lookup(estado[i])
+    estado[i] = substitui_sbox(estado[i])
 
-print("Estado S box: ", estado)
+print("Texto passado pelo S-box: ", estado)
 
 esquerda = 0
 ini = 0
 fim = 4
 rotacionado = deque([])
 
+# faz o shift para a esquerda, sendo a 1a linha com o shift = 0 até a última com shift = 3
+# converte para tipo deque para fazer esse shift mais facilmente através do método rotate
 for i in range(len(estado)):
     rot = deque(estado[ini:fim])
     rot.rotate(esquerda)
@@ -115,10 +121,10 @@ for i in range(len(estado)):
     fim += 4
     rotacionado += rot
 
-print("Rotacionado: ", rotacionado)
+print("Resultado rotação para a esquerda: ", rotacionado)
 
 
-def multiply_by_2(v):
+def multiplica2(v):
     s = v << 1
     s &= 0xff
     if (v & 128) != 0:
@@ -126,54 +132,35 @@ def multiply_by_2(v):
     return s
 
 
-def multiply_by_3(v):
-    return multiply_by_2(v) ^ v
+def multiplica3(v):
+    return multiplica2(v) ^ v
 
 
-def mix_columns(grid):
-    new_grid = [[], [], [], []]
+def mistura_colunas(matriz):
+    nmatriz = [[], [], [], []]
     for i in range(4):
-        col = [grid[j][i] for j in range(4)]
-        col = mix_column(col)
+        col = [matriz[j][i] for j in range(4)]
+        col = mistura_coluna(col)
         for i in range(4):
-            new_grid[i].append(col[i])
-    return new_grid
+            nmatriz[i].append(col[i])
+    return nmatriz
 
 
-def mix_column(column):
+def mistura_coluna(coluna):
     r = [
-        multiply_by_2(column[0]) ^ multiply_by_3(column[1]) ^ column[2] ^ column[3],
-        multiply_by_2(column[1]) ^ multiply_by_3(column[2]) ^ column[3] ^ column[0],
-        multiply_by_2(column[2]) ^ multiply_by_3(column[3]) ^ column[0] ^ column[1],
-        multiply_by_2(column[3]) ^ multiply_by_3(column[0]) ^ column[1] ^ column[2],
+        multiplica2(coluna[0]) ^ multiplica3(coluna[1]) ^ coluna[2] ^ coluna[3],
+        multiplica2(coluna[1]) ^ multiplica3(coluna[2]) ^ coluna[3] ^ coluna[0],
+        multiplica2(coluna[2]) ^ multiplica3(coluna[3]) ^ coluna[0] ^ coluna[1],
+        multiplica2(coluna[3]) ^ multiplica3(coluna[0]) ^ coluna[1] ^ coluna[2],
     ]
     return r
 
 
+# convert o array rotacionado em numpy array para poder mudar seu formato para um array de 4 x 4
+# e assim ser mais fácil de realizar as próximas operações
 arrrot = np.asarray(list(rotacionado))
-# print("Arrot: ", arrrot)
 matrot = arrrot.reshape(4, 4)
-# print("Matrot: \n", matrot)
 
-mixed_grid = mix_columns(matrot)
+coluna_misturada = mistura_colunas(matrot)
 
-print("Mixed Grid: ", mixed_grid)
-
-
-def add_sub_key(block_grid, key_grid):
-    r = []
-
-    # 4 rows in the grid
-    for i in range(4):
-        r.append([])
-        # 4 values on each row
-        for j in range(4):
-            r[-1].append(block_grid[i][j] ^ key_grid[i][j])
-    return r
-
-
-arrchave = np.asarray(chave0)
-matchave = arrchave.reshape(4, 4)
-sub_key = add_sub_key(mixed_grid, matchave)
-
-print("Sub key: ", sub_key)
+print("Encriptação AES resultado Round 0: ", coluna_misturada)
